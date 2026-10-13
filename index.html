@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catálogo Virtual</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --suave:#f5f6f8;
+    --linha:#e6e8ec;
+    --texto:#1a1d21;
+    --cinza:#6b7280;
+    --verde:#16a34a;
+    --verde-escuro:#128a3e;
+    --azul:#25d366;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--texto);
+    background:var(--bg);
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit;cursor:pointer;border:0}
+  img{display:block}
+
+  /* ---------- Tela de entrada ---------- */
+  #telaNome{
+    position:fixed;inset:0;background:var(--bg);
+    display:flex;align-items:center;justify-content:center;padding:24px;z-index:50;
+  }
+  .cartaoNome{
+    width:100%;max-width:400px;text-align:center;
+  }
+  .cartaoNome h1{font-size:26px;margin:0 0 8px;letter-spacing:-.02em}
+  .cartaoNome p{color:var(--cinza);margin:0 0 28px;font-size:15px;line-height:1.5}
+  .cartaoNome input{
+    width:100%;padding:15px 16px;font-size:16px;border:1.5px solid var(--linha);
+    border-radius:12px;outline:none;font-family:inherit;color:var(--texto);
+  }
+  .cartaoNome input:focus{border-color:var(--verde)}
+  .cartaoNome button{
+    width:100%;margin-top:12px;padding:15px;font-size:16px;font-weight:600;
+    background:var(--verde);color:#fff;border-radius:12px;
+  }
+  .cartaoNome button:hover{background:var(--verde-escuro)}
+  .aviso{color:#dc2626;font-size:14px;margin-top:12px;min-height:20px}
+
+  /* ---------- Cabeçalho ---------- */
+  header{
+    position:sticky;top:0;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--linha);z-index:20;
+  }
+  .topo{
+    max-width:1180px;margin:0 auto;padding:14px 20px;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  }
+  .marca{font-size:18px;font-weight:700;letter-spacing:-.02em;margin-right:auto}
+  .marca span{color:var(--cinza);font-weight:400;font-size:14px;display:block;letter-spacing:0}
+  .filtros{display:flex;gap:8px;flex-wrap:wrap}
+  .filtro{
+    padding:8px 14px;border-radius:999px;background:var(--suave);color:var(--cinza);
+    font-size:14px;border:1px solid transparent;
+  }
+  .filtro.ativo{background:var(--texto);color:#fff}
+  .btnCarrinho{
+    position:relative;background:var(--texto);color:#fff;padding:10px 16px;border-radius:999px;
+    font-size:14px;font-weight:600;
+  }
+  .contador{
+    position:absolute;top:-6px;right:-6px;background:var(--verde);color:#fff;
+    font-size:12px;font-weight:700;min-width:20px;height:20px;border-radius:999px;
+    display:flex;align-items:center;justify-content:center;padding:0 5px;
+  }
+  .contador.vazio{display:none}
+
+  /* ---------- Grade de produtos ---------- */
+  main{max-width:1180px;margin:0 auto;padding:28px 20px 120px}
+  .grade{
+    display:grid;gap:22px;
+    grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  }
+  .produto{border:1px solid var(--linha);border-radius:14px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+  .foto{
+    aspect-ratio:1/1;background:var(--suave);display:flex;align-items:center;justify-content:center;
+    color:#c3c7cd;font-size:13px;overflow:hidden;
+  }
+  .foto img{width:100%;height:100%;object-fit:cover}
+  .info{padding:14px 14px 16px;display:flex;flex-direction:column;flex:1}
+  .cat{font-size:12px;color:var(--cinza);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+  .nome{font-size:15px;font-weight:600;line-height:1.3;margin:0 0 4px}
+  .desc{font-size:13px;color:var(--cinza);line-height:1.4;margin:0 0 12px}
+  .rodape{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .preco{font-size:17px;font-weight:700}
+  .add{
+    background:var(--suave);color:var(--texto);border-radius:10px;padding:10px 14px;
+    font-size:14px;font-weight:600;
+  }
+  .add:hover{background:var(--texto);color:#fff}
+  .add.dentro{background:var(--verde);color:#fff}
+
+  /* ---------- Painel do carrinho ---------- */
+  #veu{
+    position:fixed;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;
+    transition:opacity .2s;z-index:30;
+  }
+  #veu.aberto{opacity:1;pointer-events:auto}
+  #carrinho{
+    position:fixed;top:0;right:0;height:100%;width:100%;max-width:420px;background:#fff;
+    transform:translateX(100%);transition:transform .25s ease;z-index:40;
+    display:flex;flex-direction:column;box-shadow:-8px 0 30px rgba(0,0,0,.12);
+  }
+  #carrinho.aberto{transform:translateX(0)}
+  .cabCarrinho{
+    padding:18px 20px;border-bottom:1px solid var(--linha);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .cabCarrinho h2{font-size:17px;margin:0}
+  .fechar{background:none;font-size:26px;line-height:1;color:var(--cinza);padding:0 4px}
+  .listaCarrinho{flex:1;overflow-y:auto;padding:8px 20px}
+  .itemCarrinho{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--linha);align-items:center}
+  .itemCarrinho img,.itemCarrinho .semFoto{
+    width:56px;height:56px;border-radius:10px;object-fit:cover;background:var(--suave);flex:none;
+    display:flex;align-items:center;justify-content:center;color:#c3c7cd;font-size:10px;
+  }
+  .itemCarrinho .dados{flex:1;min-width:0}
+  .itemCarrinho .dados b{display:block;font-size:14px;font-weight:600;margin-bottom:2px}
+  .itemCarrinho .dados small{color:var(--cinza);font-size:13px}
+  .qtd{display:flex;align-items:center;gap:10px;margin-top:6px}
+  .qtd button{
+    width:26px;height:26px;border-radius:8px;background:var(--suave);font-size:15px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .qtd span{font-size:14px;min-width:16px;text-align:center;font-weight:600}
+  .remover{background:none;color:var(--cinza);font-size:12px;text-decoration:underline;margin-left:auto}
+  .carrinhoVazio{text-align:center;color:var(--cinza);padding:60px 20px;font-size:14px}
+  .peCarrinho{padding:18px 20px;border-top:1px solid var(--linha);background:#fff}
+  .totalLinha{display:flex;justify-content:space-between;font-size:17px;font-weight:700;margin-bottom:14px}
+  .btnNegociar{
+    width:100%;padding:16px;border-radius:12px;background:var(--verde);color:#fff;
+    font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;
+  }
+  .btnNegociar:hover{background:var(--verde-escuro)}
+  .btnNegociar svg{width:20px;height:20px;fill:#fff}
+  .obs{font-size:12px;color:var(--cinza);text-align:center;margin-top:10px;line-height:1.4}
+
+  .carregando{text-align:center;color:var(--cinza);padding:70px 20px}
+  .erro{
+    max-width:560px;margin:60px auto;padding:20px;border:1px solid #fecaca;background:#fef2f2;
+    border-radius:12px;color:#991b1b;font-size:14px;line-height:1.5;
+  }
+  .erro code{background:#fff;padding:2px 6px;border-radius:5px;font-size:13px}
+</style>
+</head>
+<body>
+
+<!-- ============ TELA DE ENTRADA ============ -->
+<div id="telaNome">
+  <div class="cartaoNome">
+    <h1 id="tituloLoja">Catálogo Virtual</h1>
+    <p>Digite seu nome para acessar o catálogo.</p>
+    <input id="campoNome" type="text" placeholder="Seu nome" autocomplete="name" maxlength="60">
+    <button id="btnEntrar">Entrar no catálogo</button>
+    <div class="aviso" id="avisoNome"></div>
+  </div>
+</div>
+
+<!-- ============ CABEÇALHO ============ -->
+<header>
+  <div class="topo">
+    <div class="marca">
+      <span id="nomeLojaTopo">Catálogo Virtual</span>
+      <span id="saudacao"></span>
+    </div>
+    <div class="filtros" id="filtros"></div>
+    <button class="btnCarrinho" id="btnAbrirCarrinho">
+      Carrinho
+      <span class="contador vazio" id="contador">0</span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <div class="carregando" id="carregando">Carregando produtos...</div>
+  <div class="grade" id="grade"></div>
+</main>
+
+<!-- ============ CARRINHO ============ -->
+<div id="veu"></div>
+<aside id="carrinho">
+  <div class="cabCarrinho">
+    <h2>Seu pedido</h2>
+    <button class="fechar" id="btnFecharCarrinho">&times;</button>
+  </div>
+  <div class="listaCarrinho" id="listaCarrinho"></div>
+  <div class="peCarrinho" id="peCarrinho" style="display:none">
+    <div class="totalLinha"><span>Total</span><span id="totalCarrinho">R$ 0,00</span></div>
+    <button class="btnNegociar" id="btnNegociar">
+      <svg viewBox="0 0 24 24"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm0 18.15c-1.5 0-2.97-.4-4.25-1.16l-.3-.18-3.12.82.83-3.04-.2-.31a8.2 8.2 0 0 1-1.26-4.37c0-4.54 3.7-8.23 8.24-8.23 4.54 0 8.23 3.69 8.23 8.23s-3.69 8.24-8.17 8.24zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.13-.16.24-.64.8-.78.97-.14.16-.29.18-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.16.04-.31-.02-.43-.06-.12-.55-1.34-.76-1.83-.2-.48-.4-.42-.55-.42h-.47c-.16 0-.43.06-.65.31-.23.25-.86.84-.86 2.05s.88 2.38 1 2.54c.12.16 1.73 2.65 4.2 3.71.59.25 1.05.4 1.4.51.59.19 1.13.16 1.55.1.47-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.18-.47-.3z"/></svg>
+      Negociar pagamento
+    </button>
+    <div class="obs">Você será levado ao WhatsApp com o resumo do pedido já escrito.</div>
+  </div>
+</aside>
+
+<script>
+/* ==========================================================
+   1) CONFIGURAÇÃO — OS DOIS CAMPOS QUE VOCÊ PRECISA PREENCHER
+   ========================================================== */
+
+// A) Link CSV da sua planilha publicada (veja a aba Instrucoes da planilha)
+const URL_PLANILHA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSo-Nxg92Em20zmOlE-y8EVaryphstFAoJcBW3XaykLE9TAZ9cwFzvEdIf4F8PR1qW6sgXh3btuS4yd/pub?gid=323550408&single=true&output=csv";
+
+// B) Seu WhatsApp: 55 + DDD + número, só dígitos, sem +, sem espaço, sem traço
+const SEU_WHATSAPP = "5524999076389";
+
+// C) Nome da sua loja (aparece no topo e na mensagem do WhatsApp)
+const NOME_DA_LOJA = "DG Imports VR";
+
+/* ================= FIM DA CONFIGURAÇÃO ================== */
+
+
+/* ---------- Utilidades ---------- */
+const $ = (id) => document.getElementById(id);
+
+function dinheiro(v){
+  return "R$ " + v.toFixed(2).replace(".", ",").replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+// Aceita 79.90, 79,90, "R$ 79,90", 1.234,56 — devolve número
+function paraNumero(txt){
+  if (typeof txt === "number") return txt;
+  if (txt === null || txt === undefined) return NaN;
+  let s = String(txt).trim().replace(/[R$\s]/g, "");
+  if (s === "") return NaN;
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(s);
+  return isNaN(n) ? NaN : n;
+}
+
+// Link do Google Drive -> link que aparece como imagem
+function linkImagem(url){
+  if (!url) return "";
+  const u = String(url).trim();
+  if (u === "") return "";
+  const m = u.match(/\/d\/([a-zA-Z0-9_-]{10,})/) || u.match(/[?&]id=([a-zA-Z0-9_-]{10,})/);
+  if (m && u.includes("drive.google.com")) return "https://drive.google.com/thumbnail?id=" + m[1] + "&sz=w800";
+  return u;
+}
+
+/* ---------- Estado ---------- */
+let PRODUTOS = [];
+let CARRINHO = [];
+const CHAVE_NOME = "catalogo_nome_cliente";
+const CHAVE_CARRINHO = "catalogo_carrinho";
+
+/* ---------- Entrada pelo nome ---------- */
+function entrar(){
+  const nome = $("campoNome").value.trim().replace(/\s+/g, " ");
+  if (nome.length < 2){
+    $("avisoNome").textContent = "Digite seu nome para continuar.";
+    $("campoNome").focus();
+    return;
+  }
+  try { localStorage.setItem(CHAVE_NOME, nome); } catch(e){}
+  $("telaNome").style.display = "none";
+  $("saudacao").textContent = "Olá, " + nome.split(" ")[0];
+}
+
+function pegarNome(){
+  try { return localStorage.getItem(CHAVE_NOME) || ""; } catch(e){ return ""; }
+}
+
+/* ---------- Produtos: leitura da planilha ---------- */
+async function carregarProdutos(){
+  if (!URL_PLANILHA || URL_PLANILHA.indexOf("COLE_AQUI") === 0){
+    $("carregando").innerHTML =
+      '<div class="erro">O catálogo ainda não está ligado à planilha.<br><br>' +
+      'Abra o arquivo <b>index.html</b> em um editor de texto e substitua, no topo do script, ' +
+      '<code>COLE_AQUI_O_LINK_CSV_DO_GOOGLE_SHEETS</code> pelo link CSV da sua planilha publicada.</div>';
+    return;
+  }
+  try {
+    const resp = await fetch(URL_PLANILHA, { cache: "no-store" });
+    if (!resp.ok) throw new Error("HTTP " + resp.status);
+    const texto = await resp.text();
+    PRODUTOS = analisarCSV(texto);
+    $("carregando").style.display = "none";
+    montarFiltros();
+    desenharGrade(pegarFiltro());
+  } catch (e){
+    $("carregando").innerHTML =
+      '<div class="erro">Não foi possível carregar os produtos.<br><br>' +
+      'Confira se a planilha está publicada na web no formato CSV e se o link no arquivo ' +
+      '<b>index.html</b> está correto. Detalhe técnico: ' + e.message + '</div>';
+  }
+}
+
+// Leitor de CSV que respeita vírgulas e aspas dentro dos campos
+function analisarCSV(texto){
+  const linhas = [];
+  let campo = "", linha = [], dentroDeAspas = false;
+  for (let i = 0; i < texto.length; i++){
+    const c = texto[i];
+    if (dentroDeAspas){
+      if (c === '"'){
+        if (texto[i+1] === '"'){ campo += '"'; i++; }
+        else dentroDeAspas = false;
+      } else campo += c;
+    } else {
+      if (c === '"') dentroDeAspas = true;
+      else if (c === ","){ linha.push(campo); campo = ""; }
+      else if (c === "\n"){ linha.push(campo); linhas.push(linha); linha = []; campo = ""; }
+      else if (c !== "\r") campo += c;
+    }
+  }
+  if (campo !== "" || linha.length){ linha.push(campo); linhas.push(linha); }
+  if (!linhas.length) return [];
+
+  const cab = linhas[0].map(h => h.trim().toLowerCase().replace(/\s+/g, "_"));
+  const idx = (...nomes) => {
+    for (const n of nomes){
+      const i = cab.indexOf(n);
+      if (i !== -1) return i;
+    }
+    return -1;
+  };
+  const iId = idx("id"), iNome = idx("nome", "produto", "nome_do_produto"),
+        iDesc = idx("descricao", "descrição", "desc"), iPreco = idx("preco", "preço", "valor", "preço_(r$)"),
+        iImg = idx("imagem", "foto", "link_da_imagem", "url_imagem"),
+        iCat = idx("categoria", "tipo", "grupo"), iDisp = idx("disponivel", "disponível", "ativo", "ativo?");
+
+  const out = [];
+  for (let r = 1; r < linhas.length; r++){
+    const l = linhas[r];
+    if (!l || l.every(c => String(c).trim() === "")) continue;
+    const disp = iDisp === -1 ? "sim" : String(l[iDisp] || "").trim().toLowerCase();
+    const preco = paraNumero(iPreco === -1 ? "" : l[iPreco]);
+    const nome = iNome === -1 ? "" : String(l[iNome] || "").trim();
+    if (!nome || isNaN(preco)) continue;
+    if (disp === "nao" || disp === "não" || disp === "no" || disp === "0" || disp === "false") continue;
+    out.push({
+      id: iId === -1 ? String(r) : String(l[iId] || r).trim(),
+      nome: nome,
+      desc: iDesc === -1 ? "" : String(l[iDesc] || "").trim(),
+      preco: preco,
+      img: linkImagem(iImg === -1 ? "" : l[iImg]),
+      cat: iCat === -1 ? "" : String(l[iCat] || "").trim()
+    });
+  }
+  return out;
+}
+
+/* ---------- Filtros por categoria ---------- */
+let FILTRO = "Todas";
+function pegarFiltro(){ return FILTRO; }
+
+function montarFiltros(){
+  const cats = ["Todas", ...Array.from(new Set(PRODUTOS.map(p => p.cat).filter(Boolean)))];
+  const box = $("filtros");
+  box.innerHTML = "";
+  if (cats.length <= 2) return; // sem categorias úteis, não mostra filtro
+  cats.forEach(c => {
+    const b = document.createElement("button");
+    b.className = "filtro" + (c === FILTRO ? " ativo" : "");
+    b.textContent = c;
+    b.onclick = () => { FILTRO = c; montarFiltros(); desenharGrade(c); };
+    box.appendChild(b);
+  });
+}
+
+/* ---------- Grade de produtos ---------- */
+function desenharGrade(filtro){
+  const grade = $("grade");
+  grade.innerHTML = "";
+  const lista = PRODUTOS.filter(p => filtro === "Todas" || p.cat === filtro);
+  if (!lista.length){
+    grade.innerHTML = '<div class="carregando">Nenhum produto disponível.</div>';
+    return;
+  }
+  lista.forEach(p => {
+    const noCarrinho = CARRINHO.some(i => i.id === p.id);
+    const card = document.createElement("div");
+    card.className = "produto";
+    card.innerHTML =
+      '<div class="foto">' + (p.img
+        ? '<img src="' + p.img + '" alt="" loading="lazy" onerror="this.parentNode.innerHTML=\'Sem foto\'">'
+        : 'Sem foto') + '</div>' +
+      '<div class="info">' +
+        (p.cat ? '<div class="cat">' + p.cat + '</div>' : '') +
+        '<p class="nome">' + p.nome + '</p>' +
+        (p.desc ? '<p class="desc">' + p.desc + '</p>' : '') +
+        '<div class="rodape">' +
+          '<span class="preco">' + dinheiro(p.preco) + '</span>' +
+          '<button class="add' + (noCarrinho ? ' dentro' : '') + '">' +
+            (noCarrinho ? '✓ No carrinho' : 'Adicionar') +
+          '</button>' +
+        '</div>' +
+      '</div>';
+    card.querySelector(".add").onclick = () => adicionar(p.id);
+    grade.appendChild(card);
+  });
+}
+
+/* ---------- Carrinho ---------- */
+function adicionar(id){
+  const item = CARRINHO.find(i => i.id === id);
+  if (item) item.qtd++;
+  else {
+    const p = PRODUTOS.find(x => x.id === id);
+    if (!p) return;
+    CARRINHO.push({ id: p.id, nome: p.nome, preco: p.preco, img: p.img, qtd: 1 });
+  }
+  salvarCarrinho();
+  desenharGrade(pegarFiltro());
+  abrirCarrinho();
+}
+
+function mudarQtd(id, delta){
+  const item = CARRINHO.find(i => i.id === id);
+  if (!item) return;
+  item.qtd += delta;
+  if (item.qtd <= 0) CARRINHO = CARRINHO.filter(i => i.id !== id);
+  salvarCarrinho();
+  desenharGrade(pegarFiltro());
+}
+
+function removerItem(id){
+  CARRINHO = CARRINHO.filter(i => i.id !== id);
+  salvarCarrinho();
+  desenharGrade(pegarFiltro());
+}
+
+function totalCarrinho(){
+  return CARRINHO.reduce((s, i) => s + i.preco * i.qtd, 0);
+}
+
+function salvarCarrinho(){
+  try { localStorage.setItem(CHAVE_CARRINHO, JSON.stringify(CARRINHO)); } catch(e){}
+  atualizarCarrinho();
+}
+
+function carregarCarrinho(){
+  try {
+    const bruto = localStorage.getItem(CHAVE_CARRINHO);
+    if (bruto) CARRINHO = JSON.parse(bruto) || [];
+  } catch(e){ CARRINHO = []; }
+}
+
+function atualizarCarrinho(){
+  const n = CARRINHO.reduce((s, i) => s + i.qtd, 0);
+  const cont = $("contador");
+  cont.textContent = n;
+  cont.className = "contador" + (n === 0 ? " vazio" : "");
+
+  const lista = $("listaCarrinho");
+  const pe = $("peCarrinho");
+
+  if (!CARRINHO.length){
+    lista.innerHTML = '<div class="carrinhoVazio">Seu carrinho está vazio.<br>Escolha um produto para começar.</div>';
+    pe.style.display = "none";
+    return;
+  }
+
+  pe.style.display = "block";
+  $("totalCarrinho").textContent = dinheiro(totalCarrinho());
+
+  lista.innerHTML = "";
+  CARRINHO.forEach(i => {
+    const div = document.createElement("div");
+    div.className = "itemCarrinho";
+    div.innerHTML =
+      (i.img
+        ? '<img src="' + i.img + '" alt="" onerror="this.outerHTML=\'<div class=&quot;semFoto&quot;>foto</div>\'">'
+        : '<div class="semFoto">foto</div>') +
+      '<div class="dados">' +
+        '<b>' + i.nome + '</b>' +
+        '<small>' + dinheiro(i.preco) + ' cada</small>' +
+        '<div class="qtd">' +
+          '<button data-menos>-</button><span>' + i.qtd + '</span><button data-mais>+</button>' +
+          '<button class="remover" data-remover>remover</button>' +
+        '</div>' +
+      '</div>';
+    div.querySelector("[data-menos]").onclick = () => mudarQtd(i.id, -1);
+    div.querySelector("[data-mais]").onclick = () => mudarQtd(i.id, 1);
+    div.querySelector("[data-remover]").onclick = () => removerItem(i.id);
+    lista.appendChild(div);
+  });
+}
+
+function abrirCarrinho(){ $("carrinho").classList.add("aberto"); $("veu").classList.add("aberto"); }
+function fecharCarrinho(){ $("carrinho").classList.remove("aberto"); $("veu").classList.remove("aberto"); }
+
+/* ---------- WhatsApp ---------- */
+function montarMensagem(){
+  const nome = pegarNome() || "Cliente";
+  const linhas = CARRINHO.map(i =>
+    "• " + i.qtd + "x " + i.nome + " — " + dinheiro(i.preco * i.qtd) +
+    (i.qtd > 1 ? " (" + dinheiro(i.preco) + " cada)" : "")
+  );
+  const partes = [
+    "*NOVO PEDIDO — " + NOME_DA_LOJA + "*",
+    "",
+    "Cliente: " + nome,
+    "",
+    "*Produtos escolhidos:*",
+    ...linhas,
+    "",
+    "*TOTAL: " + dinheiro(totalCarrinho()) + "*",
+    "",
+    "Gostaria de negociar o pagamento."
+  ];
+  return partes.join("\n");
+}
+
+function negociar(){
+  if (!CARRINHO.length) return;
+  const url = "https://wa.me/" + SEU_WHATSAPP.replace(/\D/g, "") +
+              "?text=" + encodeURIComponent(montarMensagem());
+  window.open(url, "_blank");
+}
+
+/* ---------- Inicialização ---------- */
+(function iniciar(){
+  $("tituloLoja").textContent = NOME_DA_LOJA;
+  $("nomeLojaTopo").textContent = NOME_DA_LOJA;
+  document.title = NOME_DA_LOJA + " — Catálogo";
+
+  carregarCarrinho();
+  atualizarCarrinho();
+
+  const nome = pegarNome();
+  if (nome){
+    $("telaNome").style.display = "none";
+    $("saudacao").textContent = "Olá, " + nome.split(" ")[0];
+  } else {
+    $("campoNome").focus();
+  }
+
+  $("btnEntrar").onclick = entrar;
+  $("campoNome").addEventListener("keydown", e => { if (e.key === "Enter") entrar(); });
+  $("btnAbrirCarrinho").onclick = abrirCarrinho;
+  $("btnFecharCarrinho").onclick = fecharCarrinho;
+  $("veu").onclick = fecharCarrinho;
+  $("btnNegociar").onclick = negociar;
+
+  carregarProdutos();
+})();
+</script>
+</body>
+</html>
